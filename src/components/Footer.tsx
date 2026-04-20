@@ -7,9 +7,6 @@ const Footer = () => (
         <UtensilsCrossed className="h-5 w-5 text-primary" />
         Zomato Restaurant Analytics
       </div>
-      <p className="text-sm text-muted-foreground">
-        © 2026 ML Project — Built with Python, Flask & React
-      </p>
     </div>
   </footer>
 );

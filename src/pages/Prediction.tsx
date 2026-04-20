@@ -1,42 +1,115 @@
-import { useState } from "react";
+import { ChangeEvent, useState } from "react";
 import Layout from "@/components/Layout";
 import { Brain, Star, TrendingUp } from "lucide-react";
-
-const cities = ["New Delhi", "Bangalore", "Mumbai", "Pune", "Chennai", "Kolkata", "Hyderabad", "Jaipur", "Lucknow", "Ahmedabad"];
+import Papa from "papaparse";
 
 interface PredictionResult {
   rating: number;
   category: "High" | "Medium" | "Low";
+  model?: string;
 }
 
-const simulatePrediction = (cost: number, priceRange: number, delivery: boolean, booking: boolean): PredictionResult => {
+type CsvRow = Record<string, string>;
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000";
+
+const getLocalPrediction = (cost: number, priceRange: number, delivery: boolean, booking: boolean): PredictionResult => {
   let score = 3.0;
-  score += priceRange * 0.2;
-  if (delivery) score += 0.3;
-  if (booking) score += 0.2;
+  score += priceRange * 0.18;
+  if (delivery) score += 0.25;
+  if (booking) score += 0.18;
   if (cost > 500) score += 0.2;
-  if (cost > 1000) score += 0.1;
-  const rating = Math.min(5, Math.max(1, parseFloat((score + (Math.random() * 0.3 - 0.15)).toFixed(1))));
+  if (cost > 1000) score += 0.12;
+
+  const rating = Math.min(5, Math.max(1, Number.parseFloat((score).toFixed(1))));
   const category = rating >= 4.0 ? "High" : rating >= 3.0 ? "Medium" : "Low";
-  return { rating, category };
+
+  return {
+    rating,
+    category,
+    model: "local fallback",
+  };
 };
 
 const Prediction = () => {
-  const [cost, setCost] = useState(500);
+  const [cost, setCost] = useState("");
   const [priceRange, setPriceRange] = useState("2");
   const [delivery, setDelivery] = useState("Yes");
   const [booking, setBooking] = useState("No");
-  const [city, setCity] = useState(cities[0]);
+  const [cities, setCities] = useState<string[]>([]);
+  const [city, setCity] = useState("");
+  const [fileName, setFileName] = useState("");
   const [result, setResult] = useState<PredictionResult | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const handlePredict = () => {
+  const handleFileUpload = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    setFileName(file.name);
+
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      complete: (results) => {
+        const parsedCities = Array.from(
+          new Set(
+            (results.data as CsvRow[])
+              .map((row) => row["City"] || row["city"] || "")
+              .map((name) => name.trim())
+              .filter(Boolean)
+          )
+        ).sort((a, b) => a.localeCompare(b));
+
+        setCities(parsedCities);
+        setCity(parsedCities[0] ?? "");
+      },
+    });
+  };
+
+  const handlePredict = async () => {
     setLoading(true);
-    setTimeout(() => {
-      const pred = simulatePrediction(cost, parseInt(priceRange), delivery === "Yes", booking === "Yes");
-      setResult(pred);
+
+    const parsedCost = Number(cost);
+
+    const requestBody = {
+      city,
+      average_cost_for_two: Number.isFinite(parsedCost) ? parsedCost : 0,
+      price_range: Number(priceRange),
+      has_online_delivery: delivery === "Yes",
+      has_table_booking: booking === "Yes",
+    };
+
+    const localPrediction = getLocalPrediction(
+      Number.isFinite(parsedCost) ? parsedCost : 0,
+      Number(priceRange),
+      delivery === "Yes",
+      booking === "Yes"
+    );
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/predict`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      if (!response.ok) {
+        throw new Error("Prediction request failed");
+      }
+
+      const prediction = (await response.json()) as PredictionResult;
+      setResult(prediction);
+    } catch {
+      setResult(localPrediction);
+    } finally {
       setLoading(false);
-    }, 800);
+    }
   };
 
   const categoryColor = result?.category === "High" ? "text-accent" : result?.category === "Medium" ? "text-secondary" : "text-destructive";
@@ -49,9 +122,25 @@ const Prediction = () => {
 
         <div className="rounded-xl border border-border bg-card p-8 shadow-card space-y-5">
           <div>
+            <label className="block text-sm font-medium mb-1.5">Upload CSV File</label>
+            <input
+              type="file"
+              accept=".csv"
+              onChange={handleFileUpload}
+              className="w-full rounded-lg border border-input bg-background px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+            />
+            <p className="mt-2 text-xs text-muted-foreground">
+              {fileName ? `Loaded: ${fileName}` : "Upload a CSV to load city options"}
+            </p>
+          </div>
+
+          <div>
             <label className="block text-sm font-medium mb-1.5">Average Cost for Two (₹)</label>
             <input
-              type="number" value={cost} onChange={(e) => setCost(Number(e.target.value))}
+              type="number"
+              value={cost}
+              onChange={(e) => setCost(e.target.value)}
+              placeholder="Enter cost"
               className="w-full rounded-lg border border-input bg-background px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
             />
           </div>
@@ -70,8 +159,14 @@ const Prediction = () => {
             <div>
               <label className="block text-sm font-medium mb-1.5">City</label>
               <select value={city} onChange={(e) => setCity(e.target.value)}
-                className="w-full rounded-lg border border-input bg-background px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring">
-                {cities.map((c) => <option key={c} value={c}>{c}</option>)}
+                className="w-full rounded-lg border border-input bg-background px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                disabled={cities.length === 0}
+              >
+                {cities.length === 0 ? (
+                  <option value="">Upload CSV first</option>
+                ) : (
+                  cities.map((c) => <option key={c} value={c}>{c}</option>)
+                )}
               </select>
             </div>
           </div>
@@ -97,7 +192,7 @@ const Prediction = () => {
 
           <button
             onClick={handlePredict}
-            disabled={loading}
+            disabled={loading || cities.length === 0 || !city}
             className="w-full rounded-lg bg-primary px-6 py-3 font-semibold text-primary-foreground transition-transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-60 flex items-center justify-center gap-2 shadow-card"
           >
             <Brain className="h-5 w-5" />
@@ -120,11 +215,16 @@ const Prediction = () => {
                 <span className="text-sm text-muted-foreground">Performance Category</span>
               </div>
             </div>
+            {result.model && (
+              <p className="mt-4 text-center text-xs text-muted-foreground">
+                Model used: {result.model}
+              </p>
+            )}
           </div>
         )}
 
         <p className="text-xs text-muted-foreground text-center mt-6">
-          * Currently using simulated predictions. Connect a Flask backend API for real ML predictions.
+          * If the backend is not running, the page will use a local fallback prediction.
         </p>
       </div>
     </Layout>
