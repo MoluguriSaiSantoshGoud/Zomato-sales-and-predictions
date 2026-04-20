@@ -1,73 +1,133 @@
-# Welcome to your Lovable project
+# Zomato Insights
 
-## Project info
+A full-stack restaurant analytics and prediction project built with React + TypeScript on the frontend and FastAPI + scikit-learn/XGBoost on the backend.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+## Features
 
-## How can I edit this code?
+- CSV-based analytics dashboard
+- Dynamic city extraction from uploaded dataset
+- Rating prediction form connected to backend API
+- ML training pipeline with model comparison:
+	- Linear Regression
+	- Random Forest
+	- XGBoost
+- Best model artifact saved as `.pkl`
 
-There are several ways of editing your application.
+## Tech Stack
 
-**Use Lovable**
+- Vite
+- React
+- TypeScript
+- Tailwind CSS
+- shadcn-ui
+- FastAPI
+- scikit-learn
+- XGBoost
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+## Project Structure
 
-Changes made via Lovable will be committed automatically to this repo.
+```text
+.
+|-- src/                 # Frontend app (React + TypeScript)
+|-- backend/
+|   |-- app/main.py      # FastAPI application
+|   |-- train_model.py   # ML training pipeline
+|   |-- requirements.txt # Python dependencies
+|   `-- models/          # Saved model artifacts (.pkl)
+`-- public/              # Static assets and dataset files
+```
 
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
+## Frontend Setup
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+npm install
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+Frontend runs by default at:
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+```text
+http://localhost:5173
+```
 
-**Use GitHub Codespaces**
+## Backend Setup (FastAPI)
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+From project root:
 
-## What technologies are used for this project?
+```sh
+cd backend
+python -m venv .venv
+```
 
-This project is built with:
+Activate virtual environment on Windows PowerShell:
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+```powershell
+.\.venv\Scripts\Activate.ps1
+```
 
-## How can I deploy this project?
+Install dependencies:
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+```sh
+pip install -r requirements.txt
+```
 
-## Can I connect a custom domain to my Lovable project?
+## Train the Model
 
-Yes, you can!
+```sh
+python train_model.py
+```
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+This will:
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+- Load the dataset CSV
+- Train Linear Regression, Random Forest, and XGBoost (if available)
+- Compare metrics (RMSE, MAE, R2)
+- Save best model to:
+
+```text
+backend/models/restaurant_rating_model.pkl
+```
+
+## Run Backend API
+
+```sh
+uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+```
+
+Backend base URL:
+
+```text
+http://127.0.0.1:8000
+```
+
+## API Endpoints
+
+- `GET /health`
+- `GET /model-info`
+- `POST /predict`
+
+Example prediction payload:
+
+```json
+{
+	"city": "Bangalore",
+	"average_cost_for_two": 700,
+	"price_range": 2,
+	"has_online_delivery": true,
+	"has_table_booking": false
+}
+```
+
+## Optional Frontend API URL Override
+
+If needed, create a `.env` file at project root:
+
+```env
+VITE_API_BASE_URL=http://127.0.0.1:8000
+```
+
+## Testing
+
+```sh
+npm run test
+```
