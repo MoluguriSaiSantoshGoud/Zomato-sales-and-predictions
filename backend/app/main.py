@@ -9,7 +9,13 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
+try:
+    from train_model import train as train_model_artifact
+except Exception:  # pragma: no cover - fallback for unusual import paths
+    train_model_artifact = None
+
 MODEL_PATH = Path(__file__).resolve().parents[1] / "models" / "restaurant_rating_model.pkl"
+DATASET_PATH = Path(__file__).resolve().parents[2] / "src" / "pages" / "zomato sales.csv"
 
 
 class PredictionRequest(BaseModel):
@@ -36,9 +42,17 @@ def to_category(rating: float) -> str:
 
 def load_artifact() -> dict[str, Any]:
     if not MODEL_PATH.exists():
-        raise FileNotFoundError(
-            f"Model not found at {MODEL_PATH}. Run backend/train_model.py first."
-        )
+        if train_model_artifact is None:
+            raise FileNotFoundError(
+                f"Model not found at {MODEL_PATH}. Run backend/train_model.py first."
+            )
+
+        if not DATASET_PATH.exists():
+            raise FileNotFoundError(
+                f"Dataset not found at {DATASET_PATH}. Cannot train the model automatically."
+            )
+
+        train_model_artifact(data_path=DATASET_PATH, model_path=MODEL_PATH)
     return joblib.load(MODEL_PATH)
 
 
@@ -50,6 +64,7 @@ app.add_middleware(
         "http://localhost:5173",
         "http://127.0.0.1:5173",
     ],
+    allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

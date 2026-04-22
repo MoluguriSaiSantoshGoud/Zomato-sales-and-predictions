@@ -1,0 +1,18 @@
+{
+  "best_model": "random_forest",
+  "metrics": {
+    "linear_regression": {
+      "rmse": 1.2725462008239692,
+      "mae": 1.0752242454434247,
+      "r2": 0.27537515701412785
+    },
+    "random_forest": {
+      "rmse": 1.2532795294393466,
+      "mae": 1.0190808535289737,
+      "r2": 0.297151060095843
+    }
+  },
+  "train_rows": 6921,
+  "test_rows": 1731,
+  "city_count": 43
+}

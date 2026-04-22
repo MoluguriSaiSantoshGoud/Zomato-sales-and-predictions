@@ -32,7 +32,7 @@ const chartOptions = [
   {
     icon: BarChart3,
     title: "Bar Chart",
-    
+   
   },
   {
     icon: LineChart,
@@ -101,6 +101,8 @@ const Index = () => {
     ];
   }, [data, rawData.length]);
 
+  const pieData = useMemo(() => rawData.slice(0, 5), [rawData]);
+
   const handleFileUpload = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
 
@@ -140,15 +142,13 @@ const Index = () => {
               <div className="max-w-2xl space-y-4">
                 <div className="inline-flex items-center gap-2 rounded-full border border-red-100 bg-red-50 px-4 py-2 text-sm font-medium text-red-700">
                   <ArrowUpRight className="h-4 w-4" />
-                  restraunt analytics
+                  Restaurant Analytics
                 </div>
                 <div className="space-y-3">
                   <h1 className="font-display text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl lg:text-5xl">
                     Overview
                   </h1>
-                  <p className="max-w-xl text-base leading-7 text-slate-600 sm:text-lg">
-                    
-                  </p>
+                 
                 </div>
               </div>
 
@@ -163,16 +163,15 @@ const Index = () => {
             </div>
           </div>
 
-          <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
+          <div className="space-y-6">
             <div className="rounded-[2rem] border border-white/80 bg-white/90 p-6 shadow-[0_20px_70px_-30px_rgba(17,24,39,0.2)] backdrop-blur-xl sm:p-8">
               <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
                 <div>
                   <h2 className="font-display text-2xl font-semibold text-slate-900">Visualize</h2>
                   <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-                    
+                    Upload a CSV, choose a chart type, and review the selected data before switching views.
                   </p>
                 </div>
-
               </div>
 
               <div className="mt-6 grid gap-4 md:grid-cols-[1.6fr_0.8fr] md:items-end">
@@ -197,8 +196,10 @@ const Index = () => {
                   </select>
                 </div>
               </div>
+            </div>
 
-              <div className="mt-8 grid gap-4 md:grid-cols-2">
+            {rawData.length > 0 && (
+              <div className="grid gap-4 md:grid-cols-2">
                 {chartOptions.map((chart) => {
                   const Icon = chart.icon;
 
@@ -228,37 +229,36 @@ const Index = () => {
                   );
                 })}
               </div>
-            </div>
+            )}
 
-            <div className="rounded-[2rem] border border-slate-200/80 bg-slate-950 p-6 text-white shadow-[0_20px_70px_-30px_rgba(15,23,42,0.45)] sm:p-8">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <h2 className="font-display text-2xl font-semibold">Current visualization</h2>
-                  <p className="mt-2 text-sm leading-6 text-white/70">
-                    {activeChart?.description}
-                  </p>
+            {rawData.length > 0 && (
+              <div className="rounded-[2rem] border border-red-100 bg-gradient-to-br from-white via-white to-orange-50/70 p-6 shadow-[0_20px_70px_-30px_rgba(17,24,39,0.18)] backdrop-blur-xl sm:p-8">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <h2 className="font-display text-2xl font-semibold text-slate-900">Current visualization</h2>
+                    <p className="mt-2 text-sm leading-6 text-slate-600">{activeChart?.description}</p>
+                  </div>
+                  <div className="rounded-2xl border border-red-100 bg-white px-3 py-2 text-sm font-medium text-red-700 shadow-sm">
+                    {selectedChart}
+                  </div>
                 </div>
-                <div className="rounded-2xl bg-white/10 px-3 py-2 text-sm text-white/80">
-                  {selectedChart}
-                </div>
-              </div>
 
-              <div className="mt-6 rounded-[1.5rem] border border-white/10 bg-white/5 p-4 backdrop-blur-xl">
-                {data.length > 0 ? (
+                <div className="mt-6 rounded-[1.5rem] border border-orange-100 bg-white/90 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)] backdrop-blur-xl">
                   <div className="h-[420px]">
                     <ResponsiveContainer width="100%" height="100%">
                       {selectedChart === "Bar Chart" ? (
                         <BarChart data={data}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
+                          <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.18)" />
                           <XAxis dataKey="name" hide />
-                          <YAxis stroke="rgba(255,255,255,0.7)" />
+                          <YAxis stroke="rgba(71,85,105,0.75)" />
                           <Tooltip
                             contentStyle={{
-                              background: "rgba(15, 23, 42, 0.96)",
-                              border: "1px solid rgba(255,255,255,0.12)",
+                              background: "rgba(255, 255, 255, 0.98)",
+                              border: "1px solid rgba(251,146,60,0.22)",
                               borderRadius: 16,
+                              color: "#0f172a",
                             }}
-                            labelStyle={{ color: "#fff" }}
+                            labelStyle={{ color: "#0f172a" }}
                           />
                           <Legend />
                           <Bar dataKey="rating" name="Rating" radius={[8, 8, 0, 0]}>
@@ -269,16 +269,17 @@ const Index = () => {
                         </BarChart>
                       ) : selectedChart === "Line Chart" ? (
                         <LChart data={data}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
+                          <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.18)" />
                           <XAxis dataKey="name" hide />
-                          <YAxis stroke="rgba(255,255,255,0.7)" />
+                          <YAxis stroke="rgba(71,85,105,0.75)" />
                           <Tooltip
                             contentStyle={{
-                              background: "rgba(15, 23, 42, 0.96)",
-                              border: "1px solid rgba(255,255,255,0.12)",
+                              background: "rgba(255, 255, 255, 0.98)",
+                              border: "1px solid rgba(251,146,60,0.22)",
                               borderRadius: 16,
+                              color: "#0f172a",
                             }}
-                            labelStyle={{ color: "#fff" }}
+                            labelStyle={{ color: "#0f172a" }}
                           />
                           <Legend />
                           <Line
@@ -294,31 +295,33 @@ const Index = () => {
                         <PChart>
                           <Tooltip
                             contentStyle={{
-                              background: "rgba(15, 23, 42, 0.96)",
-                              border: "1px solid rgba(255,255,255,0.12)",
+                              background: "rgba(255, 255, 255, 0.98)",
+                              border: "1px solid rgba(251,146,60,0.22)",
                               borderRadius: 16,
+                              color: "#0f172a",
                             }}
-                            labelStyle={{ color: "#fff" }}
+                            labelStyle={{ color: "#0f172a" }}
                           />
                           <Legend />
-                          <Pie data={data} dataKey="rating" nameKey="name" outerRadius={150} label>
-                            {data.map((_, index) => (
+                          <Pie data={pieData} dataKey="rating" nameKey="name" outerRadius={150} label>
+                            {pieData.map((_, index) => (
                               <Cell key={index} fill={COLORS[index % COLORS.length]} />
                             ))}
                           </Pie>
                         </PChart>
                       ) : (
                         <SChart data={data}>
-                          <CartesianGrid stroke="rgba(255,255,255,0.08)" />
-                          <XAxis dataKey="cost" name="Cost" stroke="rgba(255,255,255,0.7)" />
-                          <YAxis dataKey="rating" name="Rating" stroke="rgba(255,255,255,0.7)" />
+                          <CartesianGrid stroke="rgba(148,163,184,0.18)" />
+                          <XAxis dataKey="cost" name="Cost" stroke="rgba(71,85,105,0.75)" />
+                          <YAxis dataKey="rating" name="Rating" stroke="rgba(71,85,105,0.75)" />
                           <Tooltip
                             contentStyle={{
-                              background: "rgba(15, 23, 42, 0.96)",
-                              border: "1px solid rgba(255,255,255,0.12)",
+                              background: "rgba(255, 255, 255, 0.98)",
+                              border: "1px solid rgba(251,146,60,0.22)",
                               borderRadius: 16,
+                              color: "#0f172a",
                             }}
-                            labelStyle={{ color: "#fff" }}
+                            labelStyle={{ color: "#0f172a" }}
                           />
                           <Legend />
                           <Scatter name="Restaurants" data={data} fill="#fb7185" />
@@ -326,31 +329,12 @@ const Index = () => {
                       )}
                     </ResponsiveContainer>
                   </div>
-                ) : (
-                  <div className="flex h-[420px] flex-col items-center justify-center rounded-[1.5rem] border border-dashed border-white/15 bg-white/5 px-8 text-center">
-                    <FileSpreadsheet className="h-10 w-10 text-white/35" />
-                    <h3 className="mt-4 text-lg font-semibold">Waiting for a CSV upload</h3>
-                    <p className="mt-2 max-w-md text-sm leading-6 text-white/65">
-                      Upload the dataset on the left. The chart area will switch from this empty state to an interactive visualization once rows are available.
-                    </p>
-                  </div>
-                )}
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
-          {rawData.length > 0 && (
-            <div className="rounded-[2rem] border border-white/80 bg-white/90 p-6 shadow-[0_20px_70px_-30px_rgba(17,24,39,0.15)] backdrop-blur-xl">
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-                <div>
-                  <h2 className="font-display text-2xl font-semibold text-slate-900">Implementation notes inside the page</h2>
-                </div>
-                <p className="max-w-2xl text-sm leading-6 text-slate-600">
-                  The interface now explains the workflow directly on the screen, which makes the page easier to use and gives the project a more finished, production-style presentation.
-                </p>
-              </div>
-            </div>
-          )}
+        
         </div>
       </section>
     </Layout>

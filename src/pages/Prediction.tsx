@@ -13,24 +13,6 @@ type CsvRow = Record<string, string>;
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000";
 
-const getLocalPrediction = (cost: number, priceRange: number, delivery: boolean, booking: boolean): PredictionResult => {
-  let score = 3.0;
-  score += priceRange * 0.18;
-  if (delivery) score += 0.25;
-  if (booking) score += 0.18;
-  if (cost > 500) score += 0.2;
-  if (cost > 1000) score += 0.12;
-
-  const rating = Math.min(5, Math.max(1, Number.parseFloat((score).toFixed(1))));
-  const category = rating >= 4.0 ? "High" : rating >= 3.0 ? "Medium" : "Low";
-
-  return {
-    rating,
-    category,
-    model: "local fallback",
-  };
-};
-
 const Prediction = () => {
   const [cost, setCost] = useState("");
   const [priceRange, setPriceRange] = useState("2");
@@ -40,6 +22,7 @@ const Prediction = () => {
   const [city, setCity] = useState("");
   const [fileName, setFileName] = useState("");
   const [result, setResult] = useState<PredictionResult | null>(null);
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleFileUpload = (event: ChangeEvent<HTMLInputElement>) => {
@@ -72,6 +55,7 @@ const Prediction = () => {
 
   const handlePredict = async () => {
     setLoading(true);
+    setError("");
 
     const parsedCost = Number(cost);
 
@@ -83,13 +67,6 @@ const Prediction = () => {
       has_table_booking: booking === "Yes",
     };
 
-    const localPrediction = getLocalPrediction(
-      Number.isFinite(parsedCost) ? parsedCost : 0,
-      Number(priceRange),
-      delivery === "Yes",
-      booking === "Yes"
-    );
-
     try {
       const response = await fetch(`${API_BASE_URL}/predict`, {
         method: "POST",
@@ -99,14 +76,32 @@ const Prediction = () => {
         body: JSON.stringify(requestBody),
       });
 
+      const responseBody = (await response.json().catch(() => null)) as
+        | PredictionResult
+        | { detail?: string }
+        | null;
+
       if (!response.ok) {
-        throw new Error("Prediction request failed");
+        const backendDetail =
+          responseBody && "detail" in responseBody && typeof responseBody.detail === "string"
+            ? responseBody.detail
+            : null;
+
+        throw new Error(backendDetail ?? `Prediction request failed (HTTP ${response.status})`);
       }
 
-      const prediction = (await response.json()) as PredictionResult;
+      const prediction = responseBody as PredictionResult;
       setResult(prediction);
-    } catch {
-      setResult(localPrediction);
+    } catch (err) {
+      setResult(null);
+
+      if (err instanceof TypeError) {
+        setError(`Prediction service is unavailable at ${API_BASE_URL}. Start the backend to use the ML model.`);
+      } else if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("Prediction request failed.");
+      }
     } finally {
       setLoading(false);
     }
@@ -198,6 +193,8 @@ const Prediction = () => {
             <Brain className="h-5 w-5" />
             {loading ? "Predicting..." : "Predict Rating"}
           </button>
+
+          {error && <p className="text-sm text-destructive">{error}</p>}
         </div>
 
         {result && (
@@ -223,9 +220,6 @@ const Prediction = () => {
           </div>
         )}
 
-        <p className="text-xs text-muted-foreground text-center mt-6">
-          * If the backend is not running, the page will use a local fallback prediction.
-        </p>
       </div>
     </Layout>
   );
